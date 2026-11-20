@@ -1,0 +1,372 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Somewhere, Elsewhere</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=VT323&family=Silkscreen:wght@400;700&display=swap');
+:root{--ink:#e9e6ef;--muted:#a8a4b8;--gold:#f3d89a;--blue:#9bc9e8;--panel:#111321;--line:#45445d}
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#080a13;color:var(--ink);font-family:'VT323',monospace}
+body{display:grid;place-items:center;background:radial-gradient(ellipse at 50% 35%,#20233c 0%,#0b0d18 65%,#05060c 100%)}
+#shell{width:min(1100px,100vw);height:min(760px,100vh);display:flex;flex-direction:column;position:relative;background:#080a13;border:1px solid #35364e;box-shadow:0 0 70px #000b;overflow:hidden}
+#topbar{height:42px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:0 15px;background:#101221;border-bottom:1px solid #303149;font-size:19px;letter-spacing:1px}
+#brand{color:#d8d4e7}#status{color:#a7a5bb}
+#game-wrap{position:relative;flex:1;min-height:0;background:#090c16;overflow:hidden}
+canvas{display:block;width:100%;height:100%;image-rendering:pixelated;image-rendering:crisp-edges}
+#hud{position:absolute;inset:0;pointer-events:none}
+#location{position:absolute;top:14px;left:16px;font-size:22px;color:#f0e8d7;text-shadow:2px 2px #141321;letter-spacing:1px}
+#hint{position:absolute;bottom:13px;left:50%;transform:translateX(-50%);font-size:18px;color:#d9d7e5;background:#101321d9;border:1px solid #5a5870;padding:4px 12px;white-space:nowrap}
+#right-hud{position:absolute;right:14px;top:12px;display:flex;gap:7px;pointer-events:auto}
+.hudbtn{background:#151827eF;border:1px solid #55536d;color:#e7e2f2;padding:5px 10px;font:18px 'VT323';cursor:pointer}
+.hudbtn:hover{background:#292b42}
+#dialogue{position:absolute;left:4%;right:4%;bottom:18px;min-height:140px;background:linear-gradient(135deg,#121626f5,#0b0e19f7);border:2px solid #77718d;box-shadow:0 0 0 3px #090b13,0 8px 25px #000b;padding:15px 20px 12px;display:none;pointer-events:auto}
+#speaker{font:14px 'Silkscreen';color:var(--gold);margin-bottom:8px;letter-spacing:1px}
+#words{font-size:25px;line-height:1.12;min-height:58px;white-space:pre-wrap}
+#advance{position:absolute;right:15px;bottom:6px;color:#aaa6bd;font-size:16px;animation:blink 1s steps(2) infinite}
+@keyframes blink{50%{opacity:.2}}
+#overlay{position:absolute;inset:0;background:#070914eF;display:flex;align-items:center;justify-content:center;z-index:5;padding:22px}
+.modal{width:min(620px,95%);max-height:90%;overflow:auto;background:linear-gradient(150deg,#1b1d31,#101321);border:1px solid #77718e;box-shadow:0 0 0 4px #080a13,0 20px 70px #000b;padding:25px}
+.modal h1{font:clamp(25px,5vw,42px) 'Silkscreen';font-weight:400;line-height:1.35;margin:0 0 10px;color:#f2e9d5;text-align:center}
+.modal .sub{text-align:center;color:#b9b4c9;font-size:22px;margin:0 0 22px}
+.modal p{font-size:23px;line-height:1.2;color:#d6d2e0}
+.menu-btn{display:block;width:100%;margin:9px 0;background:#252940;border:1px solid #77718d;color:#f4eddf;padding:10px;font:22px 'VT323';cursor:pointer;text-align:center}
+.menu-btn:hover{background:#39405c;border-color:#b6b0d0}
+.smallnote{color:#918da5;font-size:18px;text-align:center;margin-top:17px}
+#panel{position:absolute;inset:0;background:#070914d9;display:none;z-index:4;padding:5%;pointer-events:auto}
+.panel-inner{max-width:720px;margin:3% auto;background:#121626;border:1px solid #6d6885;padding:22px;max-height:90%;overflow:auto}
+.panel-inner h2{font:20px 'Silkscreen';font-weight:400;color:#f1dfb2;margin:0 0 15px}
+#panel-content{font-size:23px;line-height:1.25}
+.panel-close{float:right;background:none;border:1px solid #77718d;color:white;font:20px 'VT323';padding:3px 12px;cursor:pointer}
+.entry{border-bottom:1px solid #35364e;padding:9px 0;color:#d7d2e2}
+.entry em{color:#9fc8df;font-style:normal}
+#footer{height:27px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:0 12px;color:#85839b;background:#0c0e19;border-top:1px solid #25273b;font-size:16px}
+#mobile-controls{display:none;position:absolute;left:12px;bottom:15px;pointer-events:auto;gap:5px}
+#mobile-controls button{width:42px;height:36px;background:#171b2dcc;border:1px solid #6a6780;color:white;font:22px 'VT323'}
+@media(max-width:700px){#topbar{height:32px;font-size:16px}#footer{height:22px}#hint{bottom:65px;font-size:16px}#mobile-controls{display:grid;grid-template-columns:repeat(3,42px);grid-template-rows:repeat(2,36px)}#mobile-controls button:nth-child(1){grid-column:2}#mobile-controls button:nth-child(2){grid-column:1;grid-row:2}#mobile-controls button:nth-child(3){grid-column:2;grid-row:2}#mobile-controls button:nth-child(4){grid-column:3;grid-row:2}#dialogue{bottom:8px;min-height:120px;padding:10px 13px}#words{font-size:21px}#location{font-size:18px}#right-hud{top:7px;right:7px}.hudbtn{font-size:16px;padding:3px 7px}}
+</style>
+</head>
+<body>
+<div id="shell">
+ <div id="topbar"><span id="brand">✦ SOMEWHERE, ELSEWHERE</span><span id="status">A small story in a quiet place</span></div>
+ <div id="game-wrap">
+  <canvas id="game" width="640" height="400" aria-label="Game world"></canvas>
+  <div id="hud">
+   <div id="location">THE BEDROOM</div>
+   <div id="right-hud">
+    <button class="hudbtn" id="journal-btn">NOTES [J]</button>
+    <button class="hudbtn" id="bag-btn">BAG [I]</button>
+   </div>
+   <div id="hint">WASD / ARROWS to move · E to interact</div>
+   <div id="mobile-controls"><button data-move="up">▲</button><button data-move="left">◀</button><button data-move="down">▼</button><button data-move="right">▶</button></div>
+   <div id="dialogue"><div id="speaker"></div><div id="words"></div><div id="advance">▼ ENTER / E</div></div>
+  </div>
+  <div id="panel"><div class="panel-inner"><button class="panel-close" id="panel-close">CLOSE [ESC]</button><h2 id="panel-title">NOTEBOOK</h2><div id="panel-content"></div></div></div>
+  <div id="overlay">
+   <div class="modal" id="title-screen">
+    <h1>SOMEWHERE,<br>ELSEWHERE</h1>
+    <p class="sub">A little adventure about a place you almost remember.</p>
+    <button class="menu-btn" id="new-game">BEGIN</button>
+    <button class="menu-btn" id="continue-game" style="display:none">CONTINUE</button>
+    <p class="smallnote">Best played with sound on, and with the lights a little low.</p>
+    <p class="smallnote">Move: WASD / arrows · Interact: E / Enter · Notes: J · Bag: I</p>
+   </div>
+  </div>
+ </div>
+ <div id="footer"><span>Somewhere, Elsewhere</span><span id="save-state">A quiet place. For now.</span></div>
+</div>
+<script>
+(()=>{
+'use strict';
+const canvas=document.getElementById('game'),ctx=canvas.getContext('2d');
+ctx.imageSmoothingEnabled=false;
+const $=id=>document.getElementById(id);
+const overlay=$('overlay'),dialogue=$('dialogue'),panel=$('panel');
+const W=640,H=400,T=32;
+let scene='bedroom',player={x:315,y:270,dir:'down',moving:false},keys={},dialogueQueue=[],dialogueIndex=0,onDialogueEnd=null;
+let flags={started:false,clock:false,photo:false,box:false,metMori:false,gotKey:false,doorOpen:false,metPip:false,metNell:false,heardHush:false,platform:false,final:false};
+let inventory=[],notes=[],near=null,interactCooldown=0,worldTime=0,ambient=0,walkFrame=0,lastTime=0,flash=0,whisper=0;
+const scenes={
+ bedroom:{name:'THE BEDROOM',floor:'#25283a',wall:'#171a2a'},
+ village:{name:'THE SLEEPING VILLAGE',floor:'#34414a',wall:'#222d38'},
+ shop:{name:'PIP’S LITTLE SHOP',floor:'#594b45',wall:'#382f38'},
+ shore:{name:'THE QUIET SHORE',floor:'#263d50',wall:'#182a3d'},
+ station:{name:'THE OLD STATION',floor:'#343344',wall:'#202033'},
+ archive:{name:'THE ARCHIVE (LOCKED)',floor:'#27243b',wall:'#17172b'}
+};
+const objects={
+ bedroom:[
+  {id:'bed',x:145,y:160,w:82,h:53,type:'bed',name:'Your bed'},
+  {id:'desk',x:395,y:104,w:85,h:45,type:'desk',name:'A desk'},
+  {id:'clock',x:490,y:72,w:24,h:24,type:'clock',name:'Stopped clock'},
+  {id:'photo',x:350,y:88,w:18,h:24,type:'photo',name:'A photograph'},
+  {id:'music',x:430,y:165,w:31,h:24,type:'music',name:'Music box'},
+  {id:'door',x:310,y:28,w:45,h:18,type:'door',name:'Bedroom door'}
+ ],
+ village:[
+  {id:'well',x:310,y:170,w:54,h:48,type:'well',name:'Old well'},
+  {id:'sign',x:90,y:115,w:35,h:25,type:'sign',name:'Wooden sign'},
+  {id:'pip',x:465,y:170,w:25,h:31,type:'pip',name:'Pip'},
+  {id:'nell',x:175,y:290,w:24,h:31,type:'nell',name:'Nell'},
+  {id:'gate',x:590,y:190,w:22,h:80,type:'gate',name:'The eastern path'},
+  {id:'doorshop',x:465,y:115,w:48,h:30,type:'shopdoor',name:'Pip’s shop'}
+ ],
+ shop:[
+  {id:'pipshop',x:310,y:165,w:25,h:31,type:'pip',name:'Pip'},
+  {id:'shelf',x:120,y:95,w:100,h:36,type:'shelf',name:'A crowded shelf'},
+  {id:'bell',x:405,y:100,w:20,h:20,type:'bell',name:'A little bell'},
+  {id:'exit',x:310,y:365,w:70,h:20,type:'exit',name:'Village door'}
+ ],
+ shore:[
+  {id:'nellshore',x:320,y:190,w:25,h:31,type:'nell',name:'Nell'},
+  {id:'bottle',x:490,y:275,w:20,h:20,type:'bottle',name:'A bottle in the sand'},
+  {id:'lighthouse',x:555,y:75,w:45,h:70,type:'lighthouse',name:'The lighthouse'},
+  {id:'return',x:35,y:195,w:30,h:75,type:'return',name:'Village path'}
+ ],
+ station:[
+  {id:'timetable',x:170,y:95,w:60,h:42,type:'timetable',name:'The timetable'},
+  {id:'clockA',x:310,y:65,w:24,h:24,type:'clockA',name:'Station clock'},
+  {id:'platform',x:485,y:200,w:50,h:65,type:'platform',name:'Platform 0'},
+  {id:'exitstation',x:45,y:340,w:50,h:20,type:'return',name:'Village path'}
+ ]
+};
+function has(id){return inventory.some(x=>x.id===id)}
+function addItem(id,name,desc){if(!has(id)){inventory.push({id,name,desc});$('save-state').textContent='Added: '+name;}}
+function addNote(title,text){if(!notes.some(n=>n.title===title))notes.push({title,text});}
+function say(lines,after=null){
+ dialogueQueue=lines.map(x=>Array.isArray(x)?x:[x,'']);dialogueIndex=0;onDialogueEnd=after;showLine();dialogue.style.display='block';$('hint').style.display='none';
+}
+function showLine(){let l=dialogueQueue[dialogueIndex];$('speaker').textContent=l[1]||'';$('words').textContent=l[0];}
+function advance(){if(dialogue.style.display==='none')return;if(dialogueIndex<dialogueQueue.length-1){dialogueIndex++;showLine()}else{dialogue.style.display='none';$('hint').style.display='block';let cb=onDialogueEnd;onDialogueEnd=null;if(cb)cb();}}
+function closePanel(){panel.style.display='none'}
+function openPanel(which){
+ if(dialogue.style.display!=='none')return;
+ panel.style.display='block';$('panel-title').textContent=which==='bag'?'YOUR BAG':'NOTEBOOK';
+ const content=$('panel-content');content.innerHTML='';
+ if(which==='bag'){
+  if(!inventory.length)content.innerHTML='<div class="entry">It is empty. There is room for something, though.</div>';
+  inventory.forEach(i=>{let d=document.createElement('div');d.className='entry';d.innerHTML='<em>'+esc(i.name)+'</em><br>'+esc(i.desc);content.appendChild(d)});
+ }else{
+  if(!notes.length)content.innerHTML='<div class="entry">A clean page. The first page is always the strangest.</div>';
+  notes.forEach(n=>{let d=document.createElement('div');d.className='entry';d.innerHTML='<em>'+esc(n.title)+'</em><br>'+esc(n.text);content.appendChild(d)});
+ }
+}
+function esc(s){return s.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function setScene(s,x=320,y=300){scene=s;player.x=x;player.y=y;$('location').textContent=scenes[s].name;$('save-state').textContent='';}
+function startGame(){
+ overlay.style.display='none';flags.started=true;
+ if(!sessionStorage.getItem('introSeen')){
+  say([
+   ['...',''],
+   ['There is a ceiling above you.',''],
+   ['That seems like a good place to start.',''],
+   ['You do not remember falling asleep.',''],
+   ['You do not remember this room, either.',''],
+   ['A small shape is sitting beside the window.',''],
+   ['It has been watching the rain.','']
+  ],()=>{sessionStorage.setItem('introSeen','1');setScene('bedroom',315,270);});
+ }else setScene('bedroom',315,270);
+}
+function startAfterTitle(){
+ if(localStorage.getItem('se-save')){
+  try{let d=JSON.parse(localStorage.getItem('se-save'));flags={...flags,...d.flags};inventory=d.inventory||[];notes=d.notes||[];scene=d.scene||'bedroom';player=d.player||player;}catch(e){}
+ }
+ if(!flags.started){startGame()}else{overlay.style.display='none';setScene(scene,player.x,player.y);say([['You are back.',''],['The room is just as you left it.','']]);}
+}
+function save(){try{localStorage.setItem('se-save',JSON.stringify({flags,inventory,notes,scene,player}));$('save-state').textContent='Saved quietly.'}catch(e){}}
+function beginNew(){localStorage.removeItem('se-save');flags={started:true};inventory=[];notes=[];scene='bedroom';player={x:315,y:270,dir:'down',moving:false};sessionStorage.removeItem('introSeen');startGame()}
+function objectAt(s,id){return (objects[s]||[]).find(o=>o.id===id)}
+function distance(o){return Math.hypot((player.x)-(o.x+o.w/2),(player.y)-(o.y+o.h/2))}
+function getNear(){
+ let best=null,bd=55;(objects[scene]||[]).forEach(o=>{let d=distance(o);if(d<bd){bd=d;best=o}});return best;
+}
+function interact(){
+ if(dialogue.style.display!=='none'){advance();return}
+ if(panel.style.display==='block')return;
+ const o=getNear();if(!o)return;
+ const id=o.id;
+ if(scene==='bedroom'){
+  if(id==='bed')say([['The blanket is still warm.',''],['You have the uncomfortable feeling that someone got up just before you did.','']]);
+  if(id==='desk')say([['A notebook lies open. Most of the pages are blank.',''],['On the first page, in careful handwriting:',''],['“If you wake up here again, please be kind to the little one.”','']],()=>addNote('A note in the notebook','If you wake up here again, please be kind to the little one.'));
+  if(id==='clock'){if(!flags.clock){flags.clock=true;addNote('4:17','The clock stopped at 4:17. It has no battery.');say([['The clock has stopped at 4:17.',''],['Its hands are trembling. Not moving. Trembling.',''],['For a moment, you hear a voice behind the ticking.',''],['“Not yet.”','']]);}else say([['4:17. Still.','']]);}
+  if(id==='photo'){if(!flags.photo){flags.photo=true;addItem('photo','Scratched photograph','A small photograph. Someone has carefully scratched out the person standing beside the window.');say([['The photograph shows this room.',''],['The furniture is different. The window is the same.',''],['Someone has scratched a person out of the picture.','']]);}else say([['The scratched-out shape looks a little like it is smiling.','']]);}
+  if(id==='music'){if(!flags.box){flags.box=true;addItem('tune','A half-remembered tune','A melody from a little music box. You cannot quite remember the last note.');say([['The music box plays four soft notes.',''],['The fifth note never comes.',''],['You know this melody. You are sure of it.','']]);}else say([['Four notes. Then silence.','']]);}
+  if(id==='door'){say([['You open the door.',''],['A small creature is standing on the other side.',''],['“Oh! You’re awake!”','MORI'],['“I was starting to think the bed had swallowed you.”','MORI'],['It looks up at you. Its eyes catch the dim light.',''],['“I’m Mori. I found you outside the village.”','MORI'],['“Do you... remember how you got here?”','MORI'],['You shake your head.',''],['“That’s okay. I don’t remember everything, either.”','MORI']],()=>{flags.metMori=true;addNote('Mori','A small creature who says they found you outside the village. They seem friendly.');setScene('village',320,325);say([['Mori walks a few steps ahead, then turns to make sure you are following.',''],['“Welcome to the Sleeping Village!”','MORI'],['“It’s usually a little louder than this.”','MORI']]);});}
+ }else if(scene==='village'){
+  if(id==='sign')say([['SLEEPING VILLAGE',''],['Population: ...',''],['Please be considerate. Some of the houses are still dreaming.','']]);
+  if(id==='well')say([['The well is dry.',''],['There is a tiny paper star at the bottom.',''],['You hear a faint sound from far below.',''],['It sounds like someone humming.','']]);
+  if(id==='pip'){if(!flags.metPip){flags.metPip=true;say([['“Oh! A customer. Wonderful.”','PIP'],['“I’m Pip. I sell useful things, useless things, and things that haven’t decided yet.”','PIP'],['He looks at Mori.',''],['“You brought someone home.”','PIP'],['Mori looks away.','']]);}else say([['“Still here, still selling. It’s a good arrangement.”','PIP'],['“If you find a little brass key, bring it to me. I’ve misplaced something important.”','PIP']]);}
+  if(id==='nell'){if(!flags.metNell){flags.metNell=true;say([['“Hello.”','NELL'],['“I’m Nell. I’m waiting for a reply.”','NELL'],['She holds up a little radio. It only makes static.',''],['“I sent a message a long time ago. I think it got lost.”','NELL'],['Mori says nothing.','']]);}else say([['“Sometimes I think I hear an answer in the static.”','NELL'],['“But it might just be the sea.”','NELL']]);}
+  if(id==='doorshop'){setScene('shop',310,330);say([['A bell gives a tired little jingle.','']]);}
+  if(id==='gate'){if(flags.gotKey){setScene('shore',70,220);say([['The path slopes down toward the water.',''],['Mori walks closer to you.','MORI'],['“I don’t like how quiet it is today.”','MORI']]);}else say([['The eastern path is held shut by a little brass lock.',''],['There is a keyhole shaped like a star.','']]);}
+ }else if(scene==='shop'){
+  if(id==='pipshop')say([['“Welcome back. Please don’t mind the dust.”','PIP'],['“It settles when nobody is looking.”','PIP']]);
+  if(id==='shelf'){if(!flags.gotKey){flags.gotKey=true;addItem('brasskey','Tiny brass key','A star-shaped brass key. It smells faintly of salt and old paper.');addNote('A strange purchase','Pip’s shelf held a star-shaped key. The price tag read: “For the thing you almost forgot.”');say([['A little brass key rests between the marbles.',''],['There is no price, only a handwritten tag: “For the thing you almost forgot.”',''],['You pick it up.',''],['From somewhere outside, a bell rings once.','']]);}else say([['The shelf is crowded with things that have outlived their owners.',''],['Pip dusts the same little corner twice.','']]);}
+  if(id==='bell')say([['You ring the bell.',''],['Somewhere far away, another bell answers.','']]);
+  if(id==='exit'){setScene('village',470,145);say([['Back in the village.','']]);}
+ }else if(scene==='shore'){
+  if(id==='nellshore')say([['“The sea keeps bringing things back.”','NELL'],['“Not always to the right person.”','NELL'],['She looks at the radio.',''],['“I wish I knew if someone was listening.”','NELL']]);
+  if(id==='bottle'){if(!flags.gotKey){flags.gotKey=true;addItem('brasskey','Tiny brass key','A star-shaped brass key. It smells faintly of salt and old paper.');addNote('A bottle on the shore','Inside: “For whoever comes looking. The first door is never the important one.”');say([['Inside the bottle is a folded note and a tiny brass key.',''],['The handwriting looks just like the note in your notebook.',''],['“For whoever comes looking. The first door is never the important one.”','']]);}else say([['Only wet sand remains.','']]);}
+  if(id==='lighthouse'){if(!flags.heardHush){flags.heardHush=true;flash=1;addNote('The Hush','For a little while, the world went completely silent. When sound returned, Mori was standing much closer.');say([['The lighthouse lamp is dark.',''],['You climb the first few steps.',''],['Then every sound disappears.',''],['No waves. No wind. No footsteps.',''],['Mori grabs your sleeve.','MORI'],['“Don’t move.”','MORI'],['Something passes behind the lighthouse window.',''],['The world exhales.',''],['“...Sorry.”','MORI'],['“Sometimes it does that.”','MORI'],['“The Hush. It doesn’t usually happen this close.”','MORI']]);}else{say([['You look up at the lighthouse.',''],['For a moment, its dark window reflects a place you have never seen.',''],['A train platform. A clock. A door standing open.',''],['Mori takes a careful breath.','MORI'],['“I was hoping we wouldn’t have to go there.”','MORI'],['“But... I think it’s waiting for you.”','MORI']],()=>{setScene('station',320,335);say([['The air smells like rain on warm stone.',''],['There is no station outside. You are certain of that.',''],['Mori stays close. Much closer than before.','MORI']]);});}}
+  if(id==='return'){setScene('village',565,220);}
+ }else if(scene==='station'){
+  if(id==='timetable')say([['ARRIVALS',''],['08:10 — Northbound',''],['09:42 — Somewhere',''],['04:17 — Platform 0',''],['The last entry is written in pencil.','']]);
+  if(id==='clockA')say([['The station clock is stopped at 4:17.',''],['Its second hand moves backward once.','']]);
+  if(id==='platform'){if(flags.platform){say([['The train has gone.',''],['A little warmth remains on the seat.',''],['On the bench is a small paper star.','']]);}else{flags.platform=true;flags.final=true;addNote('Platform 0','The timetable listed a train at 4:17. There was no platform until you looked away. A train arrived for someone who was not there.');say([['There is no platform here.',''],['You look away for just a moment.',''],['When you look back, a narrow platform stretches into the dark.',''],['A train waits without headlights.',''],['Its doors open. No one gets off.',''],['Mori takes your hand.','MORI'],['“I know this train.”','MORI'],['“I think... I used to wait for it.”','MORI'],['A voice crackles through the station speaker.',''],['“You’re late.”','UNKNOWN'],['Mori goes very still.',''],['The train lights flicker. For one impossible second, you see your bedroom through every window.',''],['“We should go back.”','MORI'],['But the train has already begun to move.',''],['Mori looks at you. Their voice is very small.','MORI'],['“Will you stay with me until we know what this is?”','MORI']],()=>{addNote('A voice on the platform','A voice on the train speaker said: “You’re late.” Mori recognized the train.');save();$('save-state').textContent='The story will continue.';});}}
+  if(id==='exitstation'){setScene('village',320,320);}
+ }
+ save();
+}
+function useKey(){
+ if(dialogue.style.display!=='none'){advance();return}
+ if(panel.style.display==='block'){closePanel();return}
+ if(scene==='village'&&flags.gotKey&&near&&near.id==='gate'){interact();return}
+ interact();
+}
+function rect(x,y,w,h,c){ctx.fillStyle=c;ctx.fillRect(Math.round(x),Math.round(y),Math.round(w),Math.round(h))}
+function text(t,x,y,c='#fff',size=10){ctx.fillStyle=c;ctx.font=size+'px monospace';ctx.fillText(t,x,y)}
+function tile(x,y,c1,c2){rect(x,y,T,T,c1);rect(x+2,y+2,2,2,c2);rect(x+25,y+21,2,2,c2)}
+function drawRoom(){
+ const s=scenes[scene];rect(0,0,W,H,s.wall);
+ // floor and tile pattern
+ for(let y=32;y<H;y+=32)for(let x=0;x<W;x+=32)tile(x,y,s.floor,scene==='shore'?'#38536a':'#46505a');
+ // subtle vignette
+ const g=ctx.createRadialGradient(320,190,45,320,190,390);g.addColorStop(0,'#0000');g.addColorStop(1,'#0305109c');ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
+ if(scene==='bedroom')drawBedroom();
+ if(scene==='village')drawVillage();
+ if(scene==='shop')drawShop();
+ if(scene==='shore')drawShore();
+ if(scene==='station')drawStation();
+ drawObjects();
+ drawPlayer();
+ if(scene==='shore'||scene==='village'){for(let i=0;i<24;i++){let x=(i*97+worldTime*.4)%640,y=(i*53+Math.sin(worldTime*.0005+i)*5)%400;rect(x,y,1,1,'#b5cce0');}}
+ if(flash>0){ctx.fillStyle=`rgba(205,218,238,${flash*.22})`;ctx.fillRect(0,0,W,H);flash=Math.max(0,flash-.015)}
+}
+function drawBedroom(){
+ rect(20,32,600,8,'#343247');rect(20,40,600,4,'#5b5260');
+ // rug
+ rect(110,220,205,110,'#66536a');rect(117,227,191,96,'#897080');rect(123,233,179,84,'#67536b');
+ // bed
+ rect(135,145,105,78,'#53495b');rect(140,151,95,65,'#b0a3aa');rect(143,154,38,23,'#ded1d0');rect(182,154,49,59,'#78879b');rect(140,217,95,8,'#302b3b');
+ // window
+ rect(260,42,115,82,'#5a607d');rect(267,49,101,68,'#171d35');for(let i=0;i<12;i++)rect(270+i*8,54+(i*17)%55,2,2,'#a8c8dd');rect(314,49,3,68,'#77748a');rect(267,81,101,3,'#77748a');
+ // desk
+ rect(385,96,105,55,'#765a50');rect(390,102,95,9,'#a47c69');rect(397,151,8,40,'#49383b');rect(470,151,8,40,'#49383b');
+ // door
+ rect(300,26,60,9,'#59465a');rect(306,34,48,7,'#8b6b67');
+}
+function drawVillage(){
+ // houses
+ const houses=[[28,55,110,95],[205,45,105,100],[420,45,135,95],[40,260,105,105],[405,255,120,105]];
+ houses.forEach((a,i)=>{let [x,y,w,h]=a;rect(x,y,w,h,'#725b59');rect(x-7,y-13,w+14,22,'#493c50');rect(x+12,y+22,w-24,h-25,'#a17c6b');rect(x+w/2-13,y+h-32,26,32,'#4a3b48');rect(x+18,y+32,17,20,'#f0d79a');rect(x+w-35,y+32,17,20,'#f0d79a');});
+ // path
+ rect(275,32,92,368,'#796d68');rect(0,180,640,85,'#796d68');rect(0,185,640,5,'#95877a');rect(0,255,640,5,'#554e55');
+ // trees
+ for(let i=0;i<9;i++){let x=[18,155,365,580,350,165,600,28,555][i],y=[150,45,305,130,50,340,315,320,350][i];rect(x+8,y+24,8,28,'#4c3c39');rect(x,y,25,32,'#3e655a');rect(x+5,y-7,18,24,'#527b68');}
+ // well
+ rect(290,164,58,50,'#6a6c70');rect(295,160,48,8,'#9c9b9c');rect(300,170,38,35,'#242b3b');
+}
+function drawShop(){
+ rect(25,30,590,340,'#725c51');rect(35,40,570,320,'#a58a73');rect(45,50,550,300,'#5c4a4c');
+ rect(75,72,150,70,'#493e4c');for(let i=0;i<5;i++){rect(85+i*27,82,18,50,['#c1a16f','#718c9b','#b78c88','#c6b77e','#7e9c82'][i]);}
+ rect(380,65,150,95,'#433b4a');rect(392,77,126,72,'#a58b75');
+ rect(270,320,100,50,'#57413e');rect(275,325,90,45,'#8b6c5d');
+}
+function drawShore(){
+ rect(0,35,640,125,'#1b344d');for(let y=45;y<155;y+=16){for(let x=(y%32);x<640;x+=65){rect(x,y,25,2,'#3b6074');rect(x+8,y+5,13,1,'#658095')}}
+ rect(0,150,640,250,'#b29b78');for(let i=0;i<90;i++){let x=(i*71)%640,y=165+(i*37)%225;rect(x,y,2,1,'#d1bb94')}
+ // lighthouse
+ rect(530,54,55,115,'#b8b2a7');rect(522,48,71,12,'#62586a');rect(537,37,40,15,'#e7d9b0');rect(546,22,22,17,'#675d70');rect(541,70,33,25,'#34445a');
+}
+function drawStation(){
+ rect(25,35,590,330,'#4c485a');rect(35,45,570,310,'#28283b');rect(35,265,570,45,'#655b64');rect(35,310,570,4,'#b5a3a0');
+ for(let x=45;x<610;x+=60){rect(x,70,4,190,'#554d61');rect(x-5,65,14,5,'#9b8b8c')}
+ rect(75,280,490,6,'#c3b6a6');rect(75,290,490,3,'#29283b');
+}
+function drawObjects(){
+ (objects[scene]||[]).forEach(o=>{
+  let x=o.x,y=o.y;
+  switch(o.type){
+   case'clock':case'clockA':rect(x,y,24,24,'#b8a58b');rect(x+3,y+3,18,18,'#e5d7b5');rect(x+11,y+5,2,8,'#4b4656');rect(x+11,y+12,6,2,'#4b4656');break;
+   case'photo':rect(x,y,18,24,'#bba88d');rect(x+3,y+3,12,18,'#53647b');rect(x+6,y+6,6,9,'#1c263c');break;
+   case'music':rect(x,y+5,31,17,'#a47b58');rect(x+4,y,23,9,'#d3b58a');rect(x+12,y+7,7,7,'#4a3d45');break;
+   case'desk':case'shelf':rect(x,y,o.w,o.h,'#8e6d5d');rect(x+3,y+4,o.w-6,5,'#c49a7a');break;
+   case'door':case'exit':case'return':rect(x,y,o.w,o.h,'#a78b78');rect(x+o.w/2-2,y+o.h/2,4,4,'#e3cb8d');break;
+   case'well':rect(x,y+9,o.w,o.h-9,'#777c80');rect(x+7,y+5,o.w-14,7,'#b4a9a0');rect(x+13,y+13,o.w-26,o.h-20,'#18263a');break;
+   case'sign':rect(x+14,y+10,6,25,'#775344');rect(x,y,o.w,o.h,'#a27a5b');break;
+   case'pip':drawNPC(x,y,'#c58f76','#ead2ad');break;
+   case'nell':case'nellshore':drawNPC(x,y,'#9aa9b7','#d9e2df');break;
+   case'shopdoor':rect(x,y,o.w,o.h,'#9b705d');rect(x+7,y+5,o.w-14,o.h-5,'#382e3d');break;
+   case'bell':rect(x+7,y+3,7,12,'#d6bd7c');rect(x+4,y+14,13,3,'#8d795f');break;
+   case'bottle':rect(x+7,y,7,4,'#b2c5c7');rect(x+4,y+4,13,17,'#83b4b6');rect(x+6,y+7,9,10,'#d4e4d5');break;
+   case'lighthouse':break;
+   case'timetable':rect(x,y,o.w,o.h,'#9b8a76');rect(x+5,y+5,o.w-10,o.h-10,'#d5c5a3');for(let i=0;i<4;i++)rect(x+10,y+11+i*7,35,2,'#65586a');break;
+   case'platform':rect(x,y,o.w,o.h,'#6d6675');rect(x+4,y+6,o.w-8,o.h-12,'#27263a');break;
+  }
+ });
+ // Mori follows player in bedroom initially, then village
+ if(scene==='bedroom'&&flags.metMori===false){drawNPC(390,155,'#e8e8e2','#9bc9e8',true)}
+ if(scene==='village'||scene==='shore')drawNPC(scene==='village'?player.x-45:player.x-35,scene==='village'?player.y+4:player.y+5,'#e8e8e2','#9bc9e8',true);
+}
+function drawNPC(x,y,body,accent,small=false){
+ let z=small?1:1.15;ctx.save();ctx.translate(Math.round(x),Math.round(y));ctx.scale(z,z);
+ rect(-7,0,14,16,body);rect(-9,3,4,8,body);rect(5,3,4,8,body);rect(-6,-7,12,10,body);
+ rect(-7,-9,5,5,body);rect(2,-9,5,5,body);rect(-4,-3,2,2,accent);rect(3,-3,2,2,accent);rect(-2,5,4,2,accent);rect(-5,15,4,3,'#6e7185');rect(2,15,4,3,'#6e7185');
+ ctx.restore();
+}
+function drawPlayer(){
+ let x=Math.round(player.x),y=Math.round(player.y);
+ // shadow
+ rect(x-7,y+8,14,3,'#10121b88');
+ // coat + head
+ rect(x-6,y-10,12,13,'#d7c7b4');rect(x-7,y-4,14,13,'#66849a');rect(x-5,y+8,4,5,'#3e465b');rect(x+2,y+8,4,5,'#3e465b');
+ rect(x-4,y-8,2,2,'#30354b');rect(x+2,y-8,2,2,'#30354b');
+ if(player.moving&&Math.floor(worldTime/130)%2===0){rect(x-7,y+10,5,3,'#3e465b');rect(x+3,y+9,5,3,'#3e465b')}
+}
+function update(dt){
+ worldTime+=dt;
+ if(dialogue.style.display!=='none'||panel.style.display==='block'||overlay.style.display!=='none')return;
+ let dx=0,dy=0;if(keys.ArrowLeft||keys.a)dx--;if(keys.ArrowRight||keys.d)dx++;if(keys.ArrowUp||keys.w)dy--;if(keys.ArrowDown||keys.s)dy++;
+ player.moving=!!(dx||dy);if(dx||dy){let l=Math.hypot(dx,dy);dx/=l;dy/=l;player.x+=dx*dt*.075;player.y+=dy*dt*.075;player.dir=Math.abs(dx)>Math.abs(dy)?(dx>0?'right':'left'):(dy>0?'down':'up');}
+ player.x=Math.max(14,Math.min(626,player.x));player.y=Math.max(25,Math.min(385,player.y));
+ near=getNear();let hint=near?'E  ·  '+near.name:'WASD / ARROWS to move · E to interact';$('hint').textContent=hint;
+ if(scene==='village'&&player.x>620&&flags.gotKey){setScene('shore',70,220)}
+ if(scene==='shore'&&player.x<12){setScene('village',585,220)}
+ if(scene==='village'&&player.x<10){player.x=10}
+ if(scene==='shore'&&player.x>628){player.x=628}
+ if(scene==='shop'&&player.y>380){setScene('village',470,145)}
+ if(scene==='station'&&player.y>385){setScene('village',320,320)}
+ if(Math.random()<.0007&&!flags.heardHush&&scene==='village'){whisper=1}
+ if(whisper>0)whisper=Math.max(0,whisper-dt/2500);
+}
+function render(){
+ ctx.clearRect(0,0,W,H);drawRoom();
+ if(near&&dialogue.style.display==='none'&&panel.style.display==='none'){ctx.strokeStyle='#f0dfb6aa';ctx.lineWidth=1;ctx.strokeRect(near.x-2,near.y-2,near.w+4,near.h+4)}
+ if(whisper>0){ctx.fillStyle=`rgba(5,7,18,${whisper*.8})`;ctx.fillRect(0,0,W,H);text('...',310,195,'#c5c2d5',18)}
+ if(scene==='shore'&&flags.heardHush){ctx.fillStyle='rgba(8,12,25,.13)';ctx.fillRect(0,0,W,H)}
+}
+function loop(t){let dt=Math.min(40,t-lastTime||16);lastTime=t;update(dt);render();requestAnimationFrame(loop)}
+document.addEventListener('keydown',e=>{
+ if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight',' '].includes(e.key))e.preventDefault();
+ if(e.repeat)return;
+ if(e.key==='Escape'){if(panel.style.display==='block')closePanel();return}
+ if(e.key.toLowerCase()==='e'||e.key==='Enter'||e.key===' '){useKey();return}
+ if(e.key.toLowerCase()==='i'){openPanel('bag');return}
+ if(e.key.toLowerCase()==='j'){openPanel('notes');return}
+ keys[e.key]=true;keys[e.key.toLowerCase()]=true;
+});
+document.addEventListener('keyup',e=>{keys[e.key]=false;keys[e.key.toLowerCase()]=false});
+$('new-game').onclick=beginNew;
+$('continue-game').onclick=startAfterTitle;
+$('bag-btn').onclick=()=>openPanel('bag');$('journal-btn').onclick=()=>openPanel('notes');$('panel-close').onclick=closePanel;
+document.querySelectorAll('[data-move]').forEach(b=>{
+ const k={up:'w',down:'s',left:'a',right:'d'}[b.dataset.move];
+ b.addEventListener('pointerdown',e=>{e.preventDefault();keys[k]=true});
+ ['pointerup','pointerleave','pointercancel'].forEach(ev=>b.addEventListener(ev,()=>keys[k]=false));
+});
+$('continue-game').style.display=localStorage.getItem('se-save')?'block':'none';
+requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>
